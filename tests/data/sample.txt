@@ -1,0 +1,1 @@
+Case Note on Data Retention\n\nData Retention policies must follow GDPR requirements and ensure that personal data is deleted after the legal hold expires. The policy states that all client records should be reviewed annually to confirm compliance.\n\nAdditional retention guidance emphasises minimising personal data exposure.

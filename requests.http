@@ -1,0 +1,34 @@
+### Health Check
+GET http://localhost:8000/health
+Authorization: Bearer demo-cli:junior,senior,compliance
+
+### Ingest Sample
+POST http://localhost:8000/ingest
+Authorization: Bearer demo-cli:junior,senior
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name=\"case_id\"
+
+case-demo
+--boundary
+Content-Disposition: form-data; name=\"files\"; filename=\"sample.txt\"
+Content-Type: text/plain
+
+Case Note on Data Retention
+
+Data Retention policies must follow GDPR requirements and ensure that personal data is deleted after the legal hold expires. The policy states that all client records should be reviewed annually to confirm compliance.
+
+Additional retention guidance emphasises minimising personal data exposure.
+--boundary--
+
+### Ask Question
+POST http://localhost:8000/ask
+Authorization: Bearer demo-cli:senior
+Content-Type: application/json
+
+{
+  "query": "Summarise the data retention duties",
+  "case_id": "case-demo",
+  "session_id": "demo-session"
+}

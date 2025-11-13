@@ -1,0 +1,190 @@
+"""Hybrid dense + sparse retrieval built on Qdrant and BM25."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+
+from qdrant_client import QdrantClient
+from qdrant_client.http import models as rest
+from rank_bm25 import BM25Okapi
+
+from backend.rag.embeddings import embed_text
+
+
+@dataclass
+class Snippet:
+    doc_id: str
+    page: int
+    text: str
+    score: float
+
+
+class HybridRetriever:
+    def __init__(
+        self,
+        client: Optional[QdrantClient],
+        *,
+        collection_name: str = "case_chunks",
+        similarity_threshold: float = 0.8,
+    ) -> None:
+        self.client = client
+        self.collection_name = collection_name
+        self.similarity_threshold = similarity_threshold
+        self._bm25_indices: Dict[str, BM25Okapi] = {}
+        self._metadata: Dict[str, Tuple[str, int, str]] = {}
+        self._case_chunks: Dict[str, List[str]] = {}
+
+    def _ensure_collection(self, vector_size: int) -> None:
+        if self.client is None:
+            return
+        try:
+            self.client.get_collection(self.collection_name)
+        except Exception:
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config=rest.VectorParams(size=vector_size, distance=rest.Distance.COSINE),
+            )
+
+    def upsert(
+        self,
+        *,
+        case_id: str,
+        doc_id: str,
+        chunks: Sequence[str],
+        embeddings: Sequence[Sequence[float]],
+    ) -> None:
+        if len(chunks) != len(embeddings):
+            raise ValueError("chunks and embeddings must have identical length")
+
+        if embeddings and self.client is not None:
+            self._ensure_collection(len(embeddings[0]))
+
+        points: List[rest.PointStruct] = []
+        chunk_ids = [cid for cid in self._case_chunks.get(case_id, []) if not cid.startswith(f"{doc_id}:")]
+
+        for index, (chunk, vector) in enumerate(zip(chunks, embeddings)):
+            chunk_id = f"{doc_id}:{index}"
+            payload = {
+                "doc_id": doc_id,
+                "page": index + 1,
+                "text": chunk,
+                "case_id": case_id,
+            }
+            self._metadata[chunk_id] = (doc_id, index + 1, chunk)
+            chunk_ids.append(chunk_id)
+
+            if self.client is not None:
+                points.append(
+                    rest.PointStruct(
+                        id=chunk_id,
+                        vector=list(vector),
+                        payload=payload,
+                    )
+                )
+
+        if points and self.client is not None:
+            self.client.upsert(collection_name=self.collection_name, points=points)
+
+        self._case_chunks[case_id] = chunk_ids
+        documents = [self._metadata[cid][2] for cid in chunk_ids]
+        if documents:
+            self._bm25_indices[case_id] = BM25Okapi([doc.lower().split() for doc in documents])
+        elif case_id in self._bm25_indices:
+            del self._bm25_indices[case_id]
+
+    def _dense_search(self, query_vector: Sequence[float], case_id: str) -> List[Snippet]:
+        if self.client is None:
+            return []
+
+        hits = self.client.search(
+            collection_name=self.collection_name,
+            query_vector=list(query_vector),
+            limit=10,
+            query_filter=rest.Filter(
+                must=[rest.FieldCondition(key="case_id", match=rest.MatchValue(value=case_id))]
+            ),
+            with_payload=True,
+        )
+
+        snippets: List[Snippet] = []
+        for hit in hits:
+            payload = hit.payload or {}
+            score = float(hit.score or 0.0)
+            if score < self.similarity_threshold:
+                continue
+            snippets.append(
+                Snippet(
+                    doc_id=payload.get("doc_id", "unknown"),
+                    page=int(payload.get("page", 1)),
+                    text=payload.get("text", ""),
+                    score=score,
+                )
+            )
+        return snippets
+
+    def _bm25_search(self, query: str, case_id: str) -> List[Snippet]:
+        index = self._bm25_indices.get(case_id)
+        if index is None:
+            return []
+        tokens = query.lower().split()
+        scores = index.get_scores(tokens)
+        ranked = sorted(enumerate(scores), key=lambda item: item[1], reverse=True)
+        snippets: List[Snippet] = []
+        for idx, score in ranked[:10]:
+            try:
+                chunk_id = self._case_chunks[case_id][idx]
+            except (KeyError, IndexError):
+                continue
+            doc_id, page, text = self._metadata.get(chunk_id, ("unknown", 1, ""))
+            snippets.append(Snippet(doc_id=doc_id, page=page, text=text, score=float(score)))
+        return snippets
+
+    def retrieve(self, query: str, case_id: str, *, limit: int = 5) -> List[Snippet]:
+        if not query:
+            return []
+
+        query_vector = embed_text(query)
+        dense_hits = self._dense_search(query_vector, case_id)
+
+        unique_keys = {(hit.doc_id, hit.page) for hit in dense_hits}
+        if len(unique_keys) < 3:
+            sparse_hits = self._bm25_search(query, case_id)
+            for hit in sparse_hits:
+                key = (hit.doc_id, hit.page)
+                if key not in unique_keys:
+                    dense_hits.append(hit)
+                    unique_keys.add(key)
+
+        dense_hits.sort(key=lambda item: item.score, reverse=True)
+        return dense_hits[:limit]
+
+    def delete_case(self, case_id: str) -> None:
+        if self.client is not None:
+            try:
+                self.client.delete(
+                    collection_name=self.collection_name,
+                    filter=rest.Filter(
+                        must=[rest.FieldCondition(key="case_id", match=rest.MatchValue(value=case_id))]
+                    ),
+                )
+            except Exception:  # pragma: no cover
+                pass
+        chunk_ids = self._case_chunks.pop(case_id, [])
+        for chunk_id in chunk_ids:
+            self._metadata.pop(chunk_id, None)
+        self._bm25_indices.pop(case_id, None)
+
+
+def create_retriever(qdrant_url: Optional[str]) -> HybridRetriever:
+    client = None
+    if qdrant_url:
+        try:
+            client = QdrantClient(url=qdrant_url)
+        except Exception:  # pragma: no cover - network issues during local tests
+            client = None
+    return HybridRetriever(client)
+
+
+__all__ = ["Snippet", "HybridRetriever", "create_retriever"]
+

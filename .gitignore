@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.env
+.env.local
+.env.production
+local_memory.db
+frontend/.next/
+frontend/node_modules/
+frontend/.turbo/
+.DS_Store
+*.sqlite3
+**/dist/
+**/build/
+**/.pytest_cache/
+.vercel/
+.railway/
