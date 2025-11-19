@@ -82,7 +82,8 @@ The following files are already created:
 
 1. **Set Root Directory:**
    - Go to Settings → Source
-   - Set Root Directory to: `backend`
+   - **Leave Root Directory EMPTY** (use repository root, not `backend`)
+   - Railway will use the `Procfile` in the repo root which handles the backend directory
 
 2. **Add Environment Variables:**
    - Go to Variables tab
