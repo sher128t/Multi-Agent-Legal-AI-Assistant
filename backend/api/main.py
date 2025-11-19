@@ -54,8 +54,13 @@ agent_graph = build_graph(retriever, publisher)
 
 @app.on_event("startup")
 async def startup() -> None:
-    await memory_store.init()
-    app_logger().info("startup_complete")
+    try:
+        await memory_store.init()
+        app_logger().info("startup_complete", database="connected")
+    except Exception as e:
+        app_logger().error("startup_database_error", error=str(e))
+        # Continue startup even if DB fails - app can still serve /health
+        # Database will be required for /ingest and /ask endpoints
 
 
 class AskRequest(BaseModel):

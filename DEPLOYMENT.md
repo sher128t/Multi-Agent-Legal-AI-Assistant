@@ -87,8 +87,19 @@ The following files are already created:
    - **Leave Root Directory EMPTY** (use repository root, not `backend`)
    - Railway will use the `Procfile` in the repo root which handles the backend directory
 
-2. **Add Environment Variables:**
-   - Go to Variables tab
+2. **Add PostgreSQL Service (Recommended):**
+   - In your Railway project, click "+ New" → "Database" → "Add PostgreSQL"
+   - Railway will automatically create a PostgreSQL database
+   - Railway will automatically set the `DATABASE_URL` environment variable
+   - **Important**: You need to map `DATABASE_URL` to `POSTGRES_DSN`:
+     - Go to your PostgreSQL service → Variables
+     - Copy the `DATABASE_URL` value
+     - Go to your backend service → Variables
+     - Add: `POSTGRES_DSN` = (paste the DATABASE_URL value)
+   - **Alternative**: Use Supabase (see Step 1.2) and set `POSTGRES_DSN` manually
+
+3. **Add Environment Variables:**
+   - Go to your backend service → Variables tab
    - Add all these variables:
 
 ```
@@ -96,23 +107,25 @@ OPENAI_API_KEY=sk-your-openai-key
 CHAT_MODEL=gpt-4o-mini
 EMBEDDING_MODEL=text-embedding-3-large
 QDRANT_URL=https://your-cluster.qdrant.io
-POSTGRES_DSN=postgresql+asyncpg://user:pass@host:port/db
+POSTGRES_DSN=<use DATABASE_URL from PostgreSQL service, or Supabase connection string>
 REDIS_URL=redis://default:pass@host:6379
 AUTH_SECRET=generate-a-random-secret-key-here
 LOG_LEVEL=INFO
 AUTH_OPTIONAL=false
 ```
 
-3. **Set Port (if needed):**
+   **Note**: If you added PostgreSQL via Railway, the `DATABASE_URL` is auto-set. You need to copy it to `POSTGRES_DSN`.
+
+4. **Set Port (if needed):**
    - Railway auto-assigns PORT, but ensure it's set
    - The Procfile uses `$PORT` automatically
 
-4. **Deploy:**
+5. **Deploy:**
    - Railway will automatically deploy on push
    - Or click "Deploy" button
    - Wait for build to complete (~3-5 minutes)
 
-5. **Get Backend URL:**
+6. **Get Backend URL:**
    - Once deployed, go to Settings → Networking
    - Generate a public domain (e.g., `legal-backend.railway.app`)
    - Copy this URL - you'll need it for frontend
