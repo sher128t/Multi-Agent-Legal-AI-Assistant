@@ -92,10 +92,11 @@ The following files are already created:
    - Railway will automatically create a PostgreSQL database
    - Railway will automatically set the `DATABASE_URL` environment variable
    - **Important**: You need to map `DATABASE_URL` to `POSTGRES_DSN`:
-     - Go to your PostgreSQL service → Variables
-     - Copy the `DATABASE_URL` value
-     - Go to your backend service → Variables
+     - Go to your PostgreSQL service → Variables tab
+     - Copy the `DATABASE_URL` value (it will be in format `postgresql://user:pass@host:port/db`)
+     - Go to your backend service → Variables tab
      - Add: `POSTGRES_DSN` = (paste the DATABASE_URL value)
+     - **Note**: The code automatically converts `postgresql://` to `postgresql+asyncpg://` if needed
    - **Alternative**: Use Supabase (see Step 1.2) and set `POSTGRES_DSN` manually
 
 3. **Add Environment Variables:**

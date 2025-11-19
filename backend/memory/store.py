@@ -21,6 +21,19 @@ DEFAULT_DSN = os.getenv(
 )
 
 
+def _normalize_dsn(dsn: str) -> str:
+    """Normalize PostgreSQL DSN to use asyncpg driver."""
+    if not dsn:
+        return dsn
+    # Convert postgresql:// to postgresql+asyncpg://
+    if dsn.startswith("postgresql://") and "+asyncpg" not in dsn:
+        dsn = dsn.replace("postgresql://", "postgresql+asyncpg://", 1)
+    # Also handle postgres:// format
+    elif dsn.startswith("postgres://") and "+asyncpg" not in dsn:
+        dsn = dsn.replace("postgres://", "postgresql+asyncpg://", 1)
+    return dsn
+
+
 @dataclass
 class ChunkRecord:
     id: str
@@ -33,7 +46,9 @@ class ChunkRecord:
 
 class MemoryStore:
     def __init__(self, dsn: Optional[str] = None) -> None:
-        self.engine = create_async_engine(dsn or DEFAULT_DSN, echo=False)
+        dsn_to_use = dsn or DEFAULT_DSN
+        dsn_to_use = _normalize_dsn(dsn_to_use)
+        self.engine = create_async_engine(dsn_to_use, echo=False)
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def init(self) -> None:
