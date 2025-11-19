@@ -4,5 +4,7 @@ setup(
     name="legal-multi-agent-backend",
     version="0.1.0",
     packages=find_packages(),
+    package_dir={"": "."},
+    py_modules=[],
 )
 
