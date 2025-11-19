@@ -64,10 +64,12 @@ REDIS_URL=redis://default:password@xxxxx.upstash.io:6379
 ### 2.1 Prepare Backend
 
 The following files are already created:
-- `backend/Procfile` - Tells Railway how to run the app (installs package in editable mode)
+- `Procfile` (in repo root) - Tells Railway how to run the app
+- `railway.json` - Railway build configuration
+- `requirements.txt` (in repo root) - Points to backend dependencies (helps Railway detect Python)
+- `runtime.txt` (in repo root) - Python version
 - `backend/setup.py` - Package configuration for editable install
 - `backend/requirements.txt` - Python dependencies
-- `backend/runtime.txt` - Python version
 
 ### 2.2 Deploy on Railway
 
