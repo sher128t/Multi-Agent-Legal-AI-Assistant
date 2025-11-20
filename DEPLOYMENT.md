@@ -172,20 +172,24 @@ The following files are already created:
    vercel
    ```
    - Follow prompts
-   - Set root directory: `frontend`
-   - Don't override build settings (they're in vercel.json)
+   - **Root directory**: Leave as current directory (`.`) or set to `.`
+   - Vercel will auto-detect Next.js from `package.json`
+   - Don't override build settings
 
-**Option B: Using Vercel Dashboard**
+**Option B: Using Vercel Dashboard (Recommended)**
 
 1. Go to https://vercel.com
 2. Sign up/login (GitHub OAuth recommended)
 3. Click "Add New Project"
 4. Import your GitHub repository
-5. Configure:
+5. **IMPORTANT**: Configure:
    - **Framework Preset**: Next.js
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm install && npm run build` (auto-detected)
-   - **Output Directory**: `.next` (auto-detected)
+   - **Root Directory**: `frontend` ← **This is critical!**
+   - **Build Command**: Leave empty (auto-detected from package.json)
+   - **Output Directory**: Leave empty (auto-detected as `.next`)
+   - **Install Command**: Leave empty (auto-detected)
+   
+   **Note**: When Root Directory is set to `frontend`, Vercel will automatically detect Next.js from `package.json` and use the correct build settings.
 
 ### 3.3 Configure Environment Variables
 
