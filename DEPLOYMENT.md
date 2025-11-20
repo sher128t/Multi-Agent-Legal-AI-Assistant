@@ -184,7 +184,7 @@ The following files are already created:
 5. Configure:
    - **Framework Preset**: Next.js
    - **Root Directory**: `frontend`
-   - **Build Command**: `pnpm install && pnpm build` (auto-detected)
+   - **Build Command**: `npm install && npm run build` (auto-detected)
    - **Output Directory**: `.next` (auto-detected)
 
 ### 3.3 Configure Environment Variables
@@ -277,8 +277,9 @@ If you get CORS errors:
 
 **Build errors:**
 - Check Vercel build logs
-- Ensure `pnpm` is used (not npm)
+- Vercel uses `npm` by default (more reliable than pnpm on Vercel)
 - Verify all dependencies in `package.json`
+- If pnpm issues persist, delete `pnpm-lock.yaml` and let npm generate `package-lock.json`
 
 ---
 

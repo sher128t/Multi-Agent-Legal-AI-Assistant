@@ -7,6 +7,7 @@ local_memory.db
 frontend/.next/
 frontend/node_modules/
 frontend/.turbo/
+frontend/package-lock.json
 .DS_Store
 *.sqlite3
 **/dist/
