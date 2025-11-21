@@ -26,6 +26,7 @@ from backend.security.auth import AuthContext, audit_log, get_current_user, requ
 
 class Settings(BaseSettings):
     qdrant_url: Optional[str] = Field(default=os.getenv("QDRANT_URL"))
+    qdrant_api_key: Optional[str] = Field(default=os.getenv("QDRANT_API_KEY"))
     postgres_dsn: Optional[str] = Field(default=os.getenv("POSTGRES_DSN"))
     redis_url: Optional[str] = Field(default=os.getenv("REDIS_URL"))
     openai_api_key: Optional[str] = Field(default=os.getenv("OPENAI_API_KEY"))
@@ -45,7 +46,7 @@ app.add_middleware(
     allow_credentials=True,
 )
 
-retriever: HybridRetriever = create_retriever(settings.qdrant_url)
+retriever: HybridRetriever = create_retriever(settings.qdrant_url, settings.qdrant_api_key)
 memory_store = MemoryStore(settings.postgres_dsn)
 redis_client = redis.from_url(settings.redis_url) if settings.redis_url else None
 publisher = RedisPublisher(redis_client) if redis_client else None

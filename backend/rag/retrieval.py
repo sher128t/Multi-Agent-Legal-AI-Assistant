@@ -176,11 +176,14 @@ class HybridRetriever:
         self._bm25_indices.pop(case_id, None)
 
 
-def create_retriever(qdrant_url: Optional[str]) -> HybridRetriever:
+def create_retriever(qdrant_url: Optional[str], qdrant_api_key: Optional[str] = None) -> HybridRetriever:
     client = None
     if qdrant_url:
         try:
-            client = QdrantClient(url=qdrant_url)
+            if qdrant_api_key:
+                client = QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
+            else:
+                client = QdrantClient(url=qdrant_url)
         except Exception:  # pragma: no cover - network issues during local tests
             client = None
     return HybridRetriever(client)

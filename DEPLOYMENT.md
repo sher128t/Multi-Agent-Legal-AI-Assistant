@@ -108,6 +108,7 @@ OPENAI_API_KEY=sk-your-openai-key
 CHAT_MODEL=gpt-4o-mini
 EMBEDDING_MODEL=text-embedding-3-large
 QDRANT_URL=https://your-cluster.qdrant.io
+QDRANT_API_KEY=your-qdrant-api-key
 POSTGRES_DSN=<use DATABASE_URL from PostgreSQL service, or Supabase connection string>
 REDIS_URL=redis://default:pass@host:6379
 AUTH_SECRET=generate-a-random-secret-key-here
