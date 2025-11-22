@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -18,6 +19,13 @@ class Snippet:
     page: int
     text: str
     score: float
+
+
+def _chunk_id_to_int(chunk_id: str) -> int:
+    """Convert a chunk ID string to an integer for Qdrant point IDs."""
+    # Use MD5 hash and take first 8 bytes to create a 64-bit integer
+    hash_bytes = hashlib.md5(chunk_id.encode()).digest()[:8]
+    return int.from_bytes(hash_bytes, byteorder="big", signed=False)
 
 
 class HybridRetriever:
@@ -75,9 +83,11 @@ class HybridRetriever:
             chunk_ids.append(chunk_id)
 
             if self.client is not None:
+                # Qdrant requires point IDs to be integers or UUIDs, not strings with colons
+                point_id = _chunk_id_to_int(chunk_id)
                 points.append(
                     rest.PointStruct(
-                        id=chunk_id,
+                        id=point_id,
                         vector=list(vector),
                         payload=payload,
                     )
