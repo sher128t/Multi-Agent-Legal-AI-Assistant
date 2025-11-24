@@ -107,7 +107,7 @@ class HybridRetriever:
         if self.client is None:
             return []
 
-        hits = self.client.search(
+        hits = self.client.search_points(
             collection_name=self.collection_name,
             query_vector=list(query_vector),
             limit=10,
