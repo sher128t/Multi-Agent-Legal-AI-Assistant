@@ -107,9 +107,9 @@ class HybridRetriever:
         if self.client is None:
             return []
 
-        hits = self.client.search_points(
+        hits = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=list(query_vector),
+            query=list(query_vector),
             limit=10,
             query_filter=rest.Filter(
                 must=[rest.FieldCondition(key="case_id", match=rest.MatchValue(value=case_id))]
