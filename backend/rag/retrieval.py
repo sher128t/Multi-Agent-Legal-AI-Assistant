@@ -46,6 +46,7 @@ class HybridRetriever:
     def _ensure_collection(self, vector_size: int) -> None:
         if self.client is None:
             return
+        collection_created = False
         try:
             self.client.get_collection(self.collection_name)
         except Exception:
@@ -53,6 +54,19 @@ class HybridRetriever:
                 collection_name=self.collection_name,
                 vectors_config=rest.VectorParams(size=vector_size, distance=rest.Distance.COSINE),
             )
+            collection_created = True
+        
+        # Create payload index on case_id for filtering (if it doesn't exist)
+        # This is needed for Qdrant to filter by case_id
+        try:
+            self.client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name="case_id",
+                field_schema=rest.PayloadSchemaType.KEYWORD,
+            )
+        except Exception:
+            # Index might already exist, ignore
+            pass
 
     def upsert(
         self,
