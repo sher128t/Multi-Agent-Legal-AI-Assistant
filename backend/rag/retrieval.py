@@ -121,7 +121,7 @@ class HybridRetriever:
         if self.client is None:
             return []
 
-        hits = self.client.query_points(
+        result = self.client.query_points(
             collection_name=self.collection_name,
             query=list(query_vector),
             limit=10,
@@ -131,17 +131,39 @@ class HybridRetriever:
             with_payload=True,
         )
 
+        # query_points returns a QueryResponse object with a 'points' attribute
+        # or directly returns an iterable of ScoredPoint objects
+        if hasattr(result, 'points'):
+            hits = result.points
+        else:
+            hits = result
+
         snippets: List[Snippet] = []
         for hit in hits:
-            payload = hit.payload or {}
-            score = float(hit.score or 0.0)
+            # Handle both tuple and object formats
+            if isinstance(hit, tuple):
+                # Tuple format: could be (id, score, payload) or (score, payload) or similar
+                if len(hit) == 3:
+                    point_id, score, payload = hit
+                elif len(hit) == 2:
+                    score, payload = hit
+                    payload = payload or {}
+                else:
+                    # Try to extract score and payload from tuple
+                    score = float(hit[1] if len(hit) > 1 else 0.0)
+                    payload = hit[2] if len(hit) > 2 else (hit[1] if len(hit) > 1 and isinstance(hit[1], dict) else {})
+            else:
+                # If it's an object (ScoredPoint), access attributes
+                payload = getattr(hit, 'payload', None) or {}
+                score = float(getattr(hit, 'score', 0.0) or 0.0)
+            
             if score < self.similarity_threshold:
                 continue
             snippets.append(
                 Snippet(
-                    doc_id=payload.get("doc_id", "unknown"),
-                    page=int(payload.get("page", 1)),
-                    text=payload.get("text", ""),
+                    doc_id=payload.get("doc_id", "unknown") if isinstance(payload, dict) else "unknown",
+                    page=int(payload.get("page", 1)) if isinstance(payload, dict) else 1,
+                    text=payload.get("text", "") if isinstance(payload, dict) else "",
                     score=score,
                 )
             )
